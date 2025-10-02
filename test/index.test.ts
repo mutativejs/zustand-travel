@@ -429,4 +429,49 @@ describe('Zustand Travel Middleware', () => {
       expect(useStore.getState().count).toBe(5);
     });
   });
+
+  describe('Error Handling', () => {
+    it('should handle errors in state updater functions gracefully', () => {
+      const useStore = create<{ count: number; brokenUpdate: () => void }>()(
+        travel((set) => ({
+          count: 0,
+          brokenUpdate: () =>
+            set((state) => {
+              // This will throw an error
+              throw new Error('Intentional error');
+            }),
+        }))
+      );
+
+      const { brokenUpdate } = useStore.getState();
+
+      // Error should be thrown and caught
+      expect(() => brokenUpdate()).toThrow('Intentional error');
+
+      // Store should still be in a valid state
+      expect(useStore.getState().count).toBe(0);
+    });
+
+    it('should handle errors in Object.assign for partial updates', () => {
+      const useStore = create<{
+        data: { value: number };
+        update: (val: number) => void;
+      }>()(
+        travel((set) => ({
+          data: { value: 0 },
+          update: (val) => set({ data: { value: val } }),
+        }))
+      );
+
+      const { update } = useStore.getState();
+
+      // This should work fine
+      update(5);
+      expect(useStore.getState().data.value).toBe(5);
+
+      // Store should remain functional
+      update(10);
+      expect(useStore.getState().data.value).toBe(10);
+    });
+  });
 });

@@ -63,6 +63,19 @@ function separateStateAndActions<T extends Record<string, any>>(
   state: Partial<T>;
   actions: Partial<T>;
 } {
+  if (__DEV__) {
+    if (!obj || typeof obj !== 'object') {
+      throw new TypeError(
+        `[zustand-travel] Expected an object as initial state, received: ${typeof obj}`
+      );
+    }
+    if (Array.isArray(obj)) {
+      throw new TypeError(
+        '[zustand-travel] Expected an object as initial state, received an array'
+      );
+    }
+  }
+
   const state: Partial<T> = {};
   const actions: Partial<T> = {};
 
@@ -101,56 +114,95 @@ const travelImpl: Travel =
         return (set as SetState<T>)(updater, replace);
       }
 
-      // Handle different updater patterns
-      if (typeof updater === 'function') {
-        // Pass function directly to travels.setState
-        // Travels will detect if it's a mutation or return-value function
-        travels.setState(updater as Updater<T>);
-      } else {
-        // Direct value or partial update
-        if (replace) {
-          // set(value, true) - complete replacement
+      if (__DEV__) {
+        // Development mode: validate inputs and provide helpful errors
+        if (updater === null || updater === undefined) {
+          throw new TypeError(
+            '[zustand-travel] State updater cannot be null or undefined'
+          );
+        }
+      }
+
+      try {
+        // Handle different updater patterns
+        if (typeof updater === 'function') {
+          // Pass function directly to travels.setState
+          // Travels will detect if it's a mutation or return-value function
           travels.setState(updater as Updater<T>);
         } else {
-          // set({ x: y }) - partial update, convert to mutation
-          travels.setState(((draft: T) => {
-            Object.assign(draft as object, updater);
-          }) as Updater<T>);
+          // Direct value or partial update
+          if (replace) {
+            // set(value, true) - complete replacement
+            travels.setState(updater as Updater<T>);
+          } else {
+            // set({ x: y }) - partial update, convert to mutation
+            travels.setState(((draft: T) => {
+              Object.assign(draft as object, updater);
+            }) as Updater<T>);
+          }
         }
+      } catch (error) {
+        // Log error in development mode for easier debugging
+        if (__DEV__) {
+          console.error('[zustand-travel] State update failed:', error);
+        }
+        // Always re-throw to maintain expected error behavior
+        throw error;
       }
     };
 
-    // Call initializer to get initial state with actions
-    const initialState = initializer(travelSet, get, store);
+    try {
+      // Call initializer to get initial state with actions
+      const initialState = initializer(travelSet, get, store);
 
-    // Separate data state from action functions
-    const { state: dataState, actions: extractedActions } =
-      separateStateAndActions(initialState);
+      if (__DEV__) {
+        // Validate that initializer returned a value
+        if (initialState === null || initialState === undefined) {
+          throw new TypeError(
+            '[zustand-travel] Initializer must return an initial state object'
+          );
+        }
+      }
 
-    actions = extractedActions;
+      // Separate data state from action functions
+      const { state: dataState, actions: extractedActions } =
+        separateStateAndActions(initialState);
 
-    // Create Travels instance with data state only
-    travels = new Travels(dataState as T, {
-      ...options,
-      mutable: false, // Zustand handles immutability
-    });
+      actions = extractedActions;
 
-    // Mark initialization as complete
-    isInitializing = false;
+      // Create Travels instance with data state only
+      travels = new Travels(dataState as T, {
+        ...options,
+        mutable: false, // Zustand handles immutability
+      });
 
-    // Subscribe to travels changes and sync to Zustand
-    travels.subscribe((state) => {
-      // Merge state with actions and replace entirely
-      (set as SetState<T>)({ ...state, ...actions }, true);
-    });
+      // Mark initialization as complete
+      isInitializing = false;
 
-    // Add getControls method to store
-    Object.assign(store, {
-      getControls: () => travels.getControls(),
-    });
+      // Subscribe to travels changes and sync to Zustand
+      travels.subscribe((state) => {
+        // Merge state with actions and replace entirely
+        (set as SetState<T>)({ ...state, ...actions }, true);
+      });
 
-    // Return initial state with actions
-    return initialState;
+      // Add getControls method to store
+      Object.assign(store, {
+        getControls: () => travels.getControls(),
+      });
+
+      // Return initial state with actions
+      return initialState;
+    } catch (error) {
+      // Provide helpful error information in development mode
+      if (__DEV__) {
+        console.error(
+          '[zustand-travel] Middleware initialization failed:',
+          error
+        );
+      }
+      // Re-throw to prevent store creation with invalid state
+      throw error;
+    }
   };
 
 /**
