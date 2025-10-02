@@ -8,15 +8,13 @@ import {
   type TravelsOptions,
   type TravelsControls,
   type ManualTravelsControls,
+  Updater,
 } from 'travels';
 import type { Draft } from 'mutative';
 
 // ============================================================================
 // Type Definitions
 // ============================================================================
-type DraftFunction<S> = (draft: Draft<S>) => void;
-type Updater<S> = S | (() => S) | DraftFunction<S>;
-
 type SetState<T> = {
   (
     partial: T | Partial<T> | ((state: T) => T | Partial<T> | void),
