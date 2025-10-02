@@ -18,11 +18,11 @@ A powerful and high-performance time-travel middleware for Zustand
 ## Installation
 
 ```bash
-npm install travels mutative zustand
+npm install zustand-travel travels mutative zustand
 # or
-yarn add travels mutative zustand
+yarn add zustand-travel travels mutative zustand
 # or
-pnpm add travels mutative zustand
+pnpm add zustand-travel travels mutative zustand
 ```
 
 ## Quick Start
@@ -224,7 +224,7 @@ const useTodoStore = create<State & Actions>()(
 
 ### Using Controls in React
 
-```typescript
+```tsx
 function TodoApp() {
   const { todos, addTodo, toggleTodo } = useTodoStore();
   const controls = useTodoStore.getControls();
