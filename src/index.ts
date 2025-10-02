@@ -10,7 +10,6 @@ import {
   type ManualTravelsControls,
   Updater,
 } from 'travels';
-import type { Draft } from 'mutative';
 
 // ============================================================================
 // Type Definitions
