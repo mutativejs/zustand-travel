@@ -82,7 +82,10 @@ function separateStateAndActions<T extends Record<string, any>>(
 // ============================================================================
 
 const travelImpl: Travel =
-  <T>(initializer: any, options: Omit<TravelsOptions<false, any>, 'mutable'> = {}) =>
+  <T>(
+    initializer: any,
+    options: Omit<TravelsOptions<false, any>, 'mutable'> = {}
+  ) =>
   (set, get, store) => {
     let travels: Travels<T, false, true>;
     let actions: Partial<T> = {};
@@ -142,7 +145,9 @@ const travelImpl: Travel =
     });
 
     // Add getControls method to store
-    Object.assign(store, { getControls: travels.getControls });
+    Object.assign(store, {
+      getControls: () => travels.getControls(),
+    });
 
     // Return initial state with actions
     return initialState;
