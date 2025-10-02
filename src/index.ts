@@ -14,13 +14,27 @@ import {
 // Type Definitions
 // ============================================================================
 
+type SetState<T> = {
+  (
+    partial:
+      | T
+      | Partial<T>
+      | ((state: T) => T | Partial<T> | void),
+    replace?: boolean | undefined
+  ): void;
+};
+
 type Travel = <
   T,
   Mps extends [StoreMutatorIdentifier, unknown][] = [],
   Mcs extends [StoreMutatorIdentifier, unknown][] = [],
   A extends boolean = true,
 >(
-  initializer: StateCreator<T, [...Mps, ['zustand/travel', never]], Mcs>,
+  initializer: (
+    set: SetState<T>,
+    get: () => T,
+    api: StoreApi<T>
+  ) => T,
   options?: Omit<TravelsOptions<false, A>, 'mutable'>
 ) => StateCreator<T, Mps, [['zustand/travel', never], ...Mcs]>;
 
@@ -77,14 +91,17 @@ const travelImpl: Travel =
     let isInitializing = true;
 
     // Custom set function that integrates with Travels
-    const travelSet: StoreApi<any>['setState'] = (
-      updater,
-      replace,
-      ...args
+    const travelSet = ((
+      updater: any,
+      replace?: any
     ) => {
       // During initialization, bypass travels
       if (isInitializing) {
-        return set(updater, replace, ...args);
+        if (replace === true) {
+          return set(updater as any, true);
+        } else {
+          return set(updater, replace);
+        }
       }
 
       // Handle different updater patterns
@@ -99,15 +116,15 @@ const travelImpl: Travel =
           travels.setState(updater);
         } else {
           // set({ x: y }) - partial update, convert to mutation
-          travels.setState((draft) => {
+          travels.setState((draft: any) => {
             Object.assign(draft as object, updater);
           });
         }
       }
-    };
+    }) as any;
 
     // Call initializer to get initial state with actions
-    const initialState = initializer(travelSet, get, store as any);
+    const initialState = initializer(travelSet, get as any, store as any);
 
     // Separate data state from action functions
     const { state: dataState, actions: extractedActions } =
@@ -190,7 +207,7 @@ export type {
 /**
  * Extend Zustand's StoreApi to include getControls method
  */
-declare module 'zustand' {
+declare module 'zustand/vanilla' {
   interface StoreApi<T> {
     /**
      * Get time-travel controls for the store
