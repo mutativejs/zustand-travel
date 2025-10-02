@@ -3333,6 +3333,11 @@ randombytes@^2.1.0:
   dependencies:
     safe-buffer "^5.1.0"
 
+react@^19.2.0:
+  version "19.2.0"
+  resolved "https://registry.yarnpkg.com/react/-/react-19.2.0.tgz#d33dd1721698f4376ae57a54098cb47fc75d93a5"
+  integrity sha512-tmbWg6W31tQLeB5cdIBOicJDJRR2KzXsV7uSK9iNfLWQ5bIZfxuPEHp7M8wiHyHnn0DD1i7w3Zmin0FtkrwoCQ==
+
 readable-stream@^3.4.0:
   version "3.6.2"
   resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-3.6.2.tgz#56a9b36ea965c00c5a93ef31eb111a0f11056967"
@@ -3913,6 +3918,11 @@ tr46@^6.0.0:
   integrity sha512-bLVMLPtstlZ4iMQHpFHTR7GAGj2jxi8Dg0s2h2MafAE4uSWF98FC/3MomU51iQAMf8/qDUbKWf5GxuvvVcXEhw==
   dependencies:
     punycode "^2.3.1"
+
+travels@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/travels/-/travels-0.2.0.tgz#32ad0c9e8e0e5c6229c9e60bc621fdf73fc3b434"
+  integrity sha512-2paw+MvnLxyg8O6wcc1nnFtKDqhG7O2l0+5MNnNSLtJenf7MljCFpnFrCK955EVQ4k8u5r2TC5iHIGBKZdvbgw==
 
 ts-api-utils@^2.1.0:
   version "2.1.0"
