@@ -44,5 +44,5 @@ export default {
     }),
     terser(),
   ],
-  external: ['mutative', 'yjs'],
+  external: ['mutative', 'zustand', 'travels'],
 };

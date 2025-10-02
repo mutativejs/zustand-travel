@@ -9,10 +9,13 @@ import {
   type TravelsControls,
   type ManualTravelsControls,
 } from 'travels';
+import type { Draft } from 'mutative';
 
 // ============================================================================
 // Type Definitions
 // ============================================================================
+type DraftFunction<S> = (draft: Draft<S>) => void;
+type Updater<S> = S | (() => S) | DraftFunction<S>;
 
 type SetState<T> = {
   (
@@ -100,24 +103,24 @@ const travelImpl: Travel =
     ) => {
       // During initialization, bypass travels
       if (isInitializing) {
-        return set(updater as any, replace as any);
+        return (set as SetState<T>)(updater, replace);
       }
 
       // Handle different updater patterns
       if (typeof updater === 'function') {
         // Pass function directly to travels.setState
         // Travels will detect if it's a mutation or return-value function
-        travels.setState(updater as any);
+        travels.setState(updater as Updater<T>);
       } else {
         // Direct value or partial update
         if (replace) {
           // set(value, true) - complete replacement
-          travels.setState(updater as any);
+          travels.setState(updater as Updater<T>);
         } else {
           // set({ x: y }) - partial update, convert to mutation
           travels.setState(((draft: T) => {
             Object.assign(draft as object, updater);
-          }) as any);
+          }) as Updater<T>);
         }
       }
     };
@@ -147,7 +150,7 @@ const travelImpl: Travel =
     });
 
     // Add getControls method to store
-    (store as any as StoreTravel<T>).getControls = () => travels.getControls() as any;
+    Object.assign(store, { getControls: travels.getControls });
 
     // Return initial state with actions
     return initialState;
