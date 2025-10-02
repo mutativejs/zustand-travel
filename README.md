@@ -9,7 +9,7 @@ A powerful and high-performance time-travel middleware for Zustand
 ## Features
 
 - ✨ **Time Travel**: Full undo/redo support for your Zustand stores
-- 🎯 **Immer-style Mutations**: Write mutable code that produces immutable updates
+- 🎯 **Mutation updates**: Write mutable code that produces immutable updates
 - 📦 **Lightweight**: Built on efficient JSON Patch storage
 - ⚡ **High Performance**: Powered by [Mutative](https://github.com/unadlib/mutative) (10x faster than Immer)
 - 🔧 **Configurable**: Customizable history size and archive modes
@@ -45,11 +45,11 @@ export const useCountStore = create<State & Actions>()(
     count: 0,
     increment: (qty: number) =>
       set((state) => {
-        state.count += qty;
+        state.count += qty; // ⭐ Mutation style for efficient JSON Patches
       }),
     decrement: (qty: number) =>
       set((state) => {
-        state.count -= qty;
+        state.count -= qty; // ⭐ Recommended approach
       }),
   }))
 );
@@ -107,7 +107,7 @@ controls.canArchive(): boolean      // Check if can archive
 
 The middleware supports three ways to update state:
 
-### 1. Mutation Style (Immer-like)
+### 1. Mutation Style
 
 ```typescript
 set((state) => {
@@ -127,6 +127,56 @@ set({ count: 5 });
 ```typescript
 set(() => ({ count: 10 }));
 ```
+
+### Recommended Usage
+
+**Use mutation style (`set(fn)`) for most state updates** to take full advantage of Mutative's JSON Patch mechanism:
+
+```typescript
+// ✅ Recommended: Efficient JSON Patches
+set((state) => {
+  state.count += 1;
+  state.user.name = 'Alice';
+});
+```
+
+**Only use direct value (`set(value)`) for special cases:**
+- Restoring state from persistence
+- Setting initial values
+- Complete state replacement
+
+```typescript
+// ✅ Good use case: Restoring from persistence
+const loadFromStorage = () => {
+  const savedState = JSON.parse(localStorage.getItem('state'));
+  set(savedState, true); // Replace entire state
+};
+```
+
+**Why mutation style is more efficient:**
+
+When you use mutation style, Mutative tracks exactly which properties changed and generates minimal JSON Patches. For example:
+
+```typescript
+// Only generates a patch for the changed property
+set((state) => {
+  // ✅ Efficient: Only tracks the changed property
+  state.count = 5; // Patch: [{ op: 'replace', path: 'count', value: 5 }]
+});
+```
+
+By contrast, direct value updates are internally converted into record object patches rather than concise patches:
+
+```typescript
+// ❌ Inefficient: Records the entire object as a patch
+set({ count: 5 }); // Internally: record `{ count: 5 }` as a patch
+```
+
+**The benefits of efficient patches:**
+- **Smaller memory footprint**: History stores only changed properties
+- **Faster undo/redo**: Applying small patches is quicker than replacing entire objects
+- **Better performance**: Especially important for complex, deeply nested state
+- **Precise tracking**: Only actual changes are recorded
 
 ## Archive Mode
 
@@ -261,6 +311,8 @@ function TodoApp() {
 
 ### Persistence
 
+Persistence is a perfect use case for direct value initialization, as you're restoring a complete state:
+
 ```typescript
 // Save state for persistence
 const saveToStorage = () => {
@@ -285,6 +337,8 @@ const loadFromStorage = () => {
 
 const { state, patches, position } = loadFromStorage();
 
+// ✅ Direct value initialization is appropriate here
+// We're setting the complete initial state from storage
 const useStore = create<State>()(
   travel(() => state, {
     initialPatches: patches,
@@ -292,6 +346,8 @@ const useStore = create<State>()(
   })
 );
 ```
+
+**Note**: The initializer function `() => state` is called during setup with the `isInitializing` flag set to `true`, so it bypasses the travel tracking. This is the correct approach for setting initial state from persistence.
 
 ## TypeScript Support
 
