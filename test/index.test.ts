@@ -363,4 +363,65 @@ describe('Zustand Travel Middleware', () => {
       expect(increment2).toBe(increment3);
     });
   });
+
+  describe('Replace Mode', () => {
+    it('should support replace mode during initialization', () => {
+      const useStore = create<{ count: number; name: string; reset: () => void }>()(
+        travel((set) => {
+          // Use set with replace=true during initialization
+          set({ count: 0, name: 'initial', reset: () => {} } as any, true);
+          return {
+            count: 0,
+            name: 'initial',
+            reset: () => set({ count: 0, name: 'initial', reset: () => {} } as any, true),
+          };
+        })
+      );
+
+      expect(useStore.getState().count).toBe(0);
+      expect(useStore.getState().name).toBe('initial');
+    });
+
+    it('should support replace mode with direct value updates', () => {
+      const useStore = create<{
+        count: number;
+        name: string;
+        replaceState: (newState: { count: number; name: string }) => void;
+      }>()(
+        travel((set) => ({
+          count: 0,
+          name: 'test',
+          replaceState: (newState) => set(newState as any, true),
+        }))
+      );
+
+      const { replaceState } = useStore.getState();
+
+      expect(useStore.getState().count).toBe(0);
+      expect(useStore.getState().name).toBe('test');
+
+      replaceState({ count: 10, name: 'replaced' });
+
+      expect(useStore.getState().count).toBe(10);
+      expect(useStore.getState().name).toBe('replaced');
+    });
+
+    it('should support replace mode with undefined replace parameter during initialization', () => {
+      const useStore = create<{ count: number; increment: () => void }>()(
+        travel((set) => {
+          // Call set without replace parameter (replace is undefined)
+          set({ count: 5 });
+          return {
+            count: 5,
+            increment: () =>
+              set((state) => {
+                state.count += 1;
+              }),
+          };
+        })
+      );
+
+      expect(useStore.getState().count).toBe(5);
+    });
+  });
 });

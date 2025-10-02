@@ -148,7 +148,7 @@ const travelImpl: Travel =
     });
 
     // Add getControls method to store
-    (store as any).getControls = () => travels.getControls();
+    (store as StoreTravel<any>).getControls = () => travels.getControls();
 
     // Return initial state with actions
     return initialState;
