@@ -50,8 +50,8 @@ type WithTravel<S> = Write<S, StoreTravel<S>>;
 
 type StoreTravel<S> = {
   getControls: () =>
-    | TravelsControls<any, false>
-    | ManualTravelsControls<any, false>;
+    | TravelsControls<S, false>
+    | ManualTravelsControls<S, false>;
 };
 
 // ============================================================================
@@ -61,12 +61,12 @@ type StoreTravel<S> = {
 /**
  * Separate state data from action functions
  */
-function separateStateAndActions<T>(obj: T): {
+function separateStateAndActions<T extends Record<string, any>>(obj: T): {
   state: Partial<T>;
   actions: Partial<T>;
 } {
-  const state: any = {};
-  const actions: any = {};
+  const state: Partial<T> = {};
+  const actions: Partial<T> = {};
 
   for (const key in obj) {
     if (typeof obj[key] === 'function') {
@@ -84,47 +84,46 @@ function separateStateAndActions<T>(obj: T): {
 // ============================================================================
 
 const travelImpl: Travel =
-  (initializer, options = {}) =>
+  <T,>(initializer: any, options: any = {}) =>
   (set, get, store) => {
-    let travels: Travels<any, false, any>;
-    let actions: any = {};
+    let travels: Travels<T, false, true>;
+    let actions: Partial<T> = {};
     let isInitializing = true;
 
     // Custom set function that integrates with Travels
-    const travelSet = ((
-      updater: any,
-      replace?: any
+    const travelSet: SetState<T> = (
+      updater:
+        | T
+        | Partial<T>
+        | ((state: T) => T | Partial<T> | void),
+      replace?: boolean | undefined
     ) => {
       // During initialization, bypass travels
       if (isInitializing) {
-        if (replace === true) {
-          return set(updater as any, true);
-        } else {
-          return set(updater, replace);
-        }
+        return set(updater as any, replace as any);
       }
 
       // Handle different updater patterns
       if (typeof updater === 'function') {
         // Pass function directly to travels.setState
         // Travels will detect if it's a mutation or return-value function
-        travels.setState(updater);
+        travels.setState(updater as any);
       } else {
         // Direct value or partial update
         if (replace) {
           // set(value, true) - complete replacement
-          travels.setState(updater);
+          travels.setState(updater as any);
         } else {
           // set({ x: y }) - partial update, convert to mutation
-          travels.setState((draft: any) => {
+          travels.setState(((draft: T) => {
             Object.assign(draft as object, updater);
-          });
+          }) as any);
         }
       }
-    }) as any;
+    };
 
     // Call initializer to get initial state with actions
-    const initialState = initializer(travelSet, get as any, store as any);
+    const initialState = initializer(travelSet, get, store);
 
     // Separate data state from action functions
     const { state: dataState, actions: extractedActions } =
@@ -133,7 +132,7 @@ const travelImpl: Travel =
     actions = extractedActions;
 
     // Create Travels instance with data state only
-    travels = new Travels(dataState, {
+    travels = new Travels(dataState as T, {
       ...options,
       mutable: false, // Zustand handles immutability
     });
@@ -148,7 +147,7 @@ const travelImpl: Travel =
     });
 
     // Add getControls method to store
-    (store as StoreTravel<any>).getControls = () => travels.getControls();
+    (store as any as StoreTravel<T>).getControls = () => travels.getControls() as any;
 
     // Return initial state with actions
     return initialState;
