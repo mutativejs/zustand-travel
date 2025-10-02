@@ -366,14 +366,19 @@ describe('Zustand Travel Middleware', () => {
 
   describe('Replace Mode', () => {
     it('should support replace mode during initialization', () => {
-      const useStore = create<{ count: number; name: string; reset: () => void }>()(
+      const useStore = create<{
+        count: number;
+        name: string;
+        reset: () => void;
+      }>()(
         travel((set) => {
           // Use set with replace=true during initialization
-          set({ count: 0, name: 'initial', reset: () => {} } as any, true);
+          set({ count: 0, name: 'initial', reset: () => {} }, true);
           return {
             count: 0,
             name: 'initial',
-            reset: () => set({ count: 0, name: 'initial', reset: () => {} } as any, true),
+            reset: () =>
+              set({ count: 0, name: 'initial', reset: () => {} }, true),
           };
         })
       );
@@ -391,7 +396,7 @@ describe('Zustand Travel Middleware', () => {
         travel((set) => ({
           count: 0,
           name: 'test',
-          replaceState: (newState) => set(newState as any, true),
+          replaceState: (newState) => set(newState, true),
         }))
       );
 

@@ -19,10 +19,7 @@ type Updater<S> = S | (() => S) | DraftFunction<S>;
 
 type SetState<T> = {
   (
-    partial:
-      | T
-      | Partial<T>
-      | ((state: T) => T | Partial<T> | void),
+    partial: T | Partial<T> | ((state: T) => T | Partial<T> | void),
     replace?: boolean | undefined
   ): void;
 };
@@ -33,11 +30,7 @@ type Travel = <
   Mcs extends [StoreMutatorIdentifier, unknown][] = [],
   A extends boolean = true,
 >(
-  initializer: (
-    set: SetState<T>,
-    get: () => T,
-    api: StoreApi<T>
-  ) => T,
+  initializer: (set: SetState<T>, get: () => T, api: StoreApi<T>) => T,
   options?: Omit<TravelsOptions<false, A>, 'mutable'>
 ) => StateCreator<T, Mps, [['zustand/travel', never], ...Mcs]>;
 
@@ -64,7 +57,9 @@ type StoreTravel<S> = {
 /**
  * Separate state data from action functions
  */
-function separateStateAndActions<T extends Record<string, any>>(obj: T): {
+function separateStateAndActions<T extends Record<string, any>>(
+  obj: T
+): {
   state: Partial<T>;
   actions: Partial<T>;
 } {
@@ -87,7 +82,7 @@ function separateStateAndActions<T extends Record<string, any>>(obj: T): {
 // ============================================================================
 
 const travelImpl: Travel =
-  <T,>(initializer: any, options: any = {}) =>
+  <T>(initializer: any, options: Omit<TravelsOptions<false, any>, 'mutable'> = {}) =>
   (set, get, store) => {
     let travels: Travels<T, false, true>;
     let actions: Partial<T> = {};
@@ -95,10 +90,7 @@ const travelImpl: Travel =
 
     // Custom set function that integrates with Travels
     const travelSet: SetState<T> = (
-      updater:
-        | T
-        | Partial<T>
-        | ((state: T) => T | Partial<T> | void),
+      updater: T | Partial<T> | ((state: T) => T | Partial<T> | void),
       replace?: boolean | undefined
     ) => {
       // During initialization, bypass travels
@@ -146,7 +138,7 @@ const travelImpl: Travel =
     // Subscribe to travels changes and sync to Zustand
     travels.subscribe((state) => {
       // Merge state with actions and replace entirely
-      set({ ...state, ...actions } as any, true);
+      (set as SetState<T>)({ ...state, ...actions }, true);
     });
 
     // Add getControls method to store

@@ -30,7 +30,8 @@ export default {
       sourcemap: true,
       globals: {
         mutative: 'Mutative',
-        yjs: 'Yjs',
+        zustand: 'Zustand',
+        travels: 'Travels',
       },
       exports: 'named',
     },
