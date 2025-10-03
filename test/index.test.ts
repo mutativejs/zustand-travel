@@ -199,22 +199,23 @@ describe('Zustand Travel Middleware', () => {
       increment(); // 4
       increment(); // 5
 
+      expect(controls.position).toBe(3);
       expect(useStore.getState().count).toBe(5);
 
       // With maxHistory: 3, we can go back up to 3 steps
       // Position is capped at maxHistory (3), so we're at position 3 with count 5
       // Due to how travels manages patches with maxHistory, the history may have gaps
-      controls.back(); // position 2
+      controls.back();
+      expect(controls.position).toBe(2);
       expect(useStore.getState().count).toBe(4);
 
-      controls.back(); // position 1
-      // The exact value depends on travels' patch management
-      const countAfterSecondBack = useStore.getState().count;
-      expect(countAfterSecondBack).toBeLessThan(4);
+      controls.back();
+      expect(controls.position).toBe(1);
+      expect(useStore.getState().count).toBe(3);
 
-      controls.back(); // position 0
-      expect(useStore.getState().count).toBe(0);
-
+      controls.back();
+      expect(controls.position).toBe(0);
+      expect(useStore.getState().count).toBe(2);
       expect(controls.canBack()).toBe(false); // Can't go further back
     });
 

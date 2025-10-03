@@ -8,7 +8,7 @@ import {
   type TravelsOptions,
   type TravelsControls,
   type ManualTravelsControls,
-  Updater,
+  type Updater,
 } from 'travels';
 
 // ============================================================================
