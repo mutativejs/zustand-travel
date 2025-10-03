@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/v/zustand-travel.svg)](https://www.npmjs.com/package/zustand-travel)
 ![license](https://img.shields.io/npm/l/zustand-travel)
 
-A powerful and high-performance time-travel middleware for Zustand
+A powerful and high-performance time-travel middleware for Zustand with [Travels](https://github.com/mutativejs/travels).
 
 ## Features
 
