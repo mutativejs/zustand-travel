@@ -1,7 +1,7 @@
 {
   "name": "zustand-travel",
   "description": "A powerful and high-performance undo/redo middleware for Zustand with Travels",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "author": "unadlib",
   "publishConfig": {
