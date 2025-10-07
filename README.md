@@ -99,6 +99,7 @@ controls.patches: TravelPatches     // Current patches
 **Manual Archive Mode** (when `autoArchive: false`):
 
 ```typescript
+// you can use type `StoreApi`, e.g. `controls as Controls<StoreApi<{ count: number; }>,false>`
 controls.archive()                  // Archive current changes
 controls.canArchive(): boolean      // Check if can archive
 ```

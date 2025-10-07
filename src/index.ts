@@ -9,6 +9,7 @@ import {
   type TravelsControls,
   type ManualTravelsControls,
   type Updater,
+  type PatchesOption,
 } from 'travels';
 
 // ============================================================================
@@ -46,6 +47,13 @@ type StoreTravel<S> = {
     | TravelsControls<S, false>
     | ManualTravelsControls<S, false>;
 };
+
+export type Controls<
+  S,
+  A extends boolean = false,
+  F extends boolean = false,
+  P extends PatchesOption = {},
+> = A extends true ? TravelsControls<S, F, P> : ManualTravelsControls<S, F, P>;
 
 // ============================================================================
 // Helper Functions

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { create } from 'zustand';
-import { travel } from '../src/index';
+import { create, StoreApi } from 'zustand';
+import { Controls, travel } from '../src/index';
 
 describe('Zustand Travel Middleware', () => {
   describe('Basic Functionality', () => {
@@ -65,12 +65,23 @@ describe('Zustand Travel Middleware', () => {
   describe('Time Travel Controls', () => {
     it('should provide getControls method', () => {
       const useStore = create<{ count: number }>()(
-        travel(() => ({
-          count: 0,
-        }))
+        travel(
+          () => ({
+            count: 0,
+          }),
+          {
+            autoArchive: false,
+          }
+        )
       );
 
-      const controls = useStore.getControls();
+      const controls = useStore.getControls() as Controls<
+        StoreApi<{
+          count: number;
+        }>,
+        false
+      >;
+      expect(controls.archive).toBeDefined();
       expect(controls).toBeDefined();
       expect(controls.back).toBeDefined();
       expect(controls.forward).toBeDefined();
