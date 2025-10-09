@@ -28,7 +28,7 @@ type Travel = <
   Mcs extends [StoreMutatorIdentifier, unknown][] = [],
   A extends boolean = true,
 >(
-  initializer: (set: SetState<T>, get: () => T, api: StoreApi<T>) => T,
+  initializer: StateCreator<T, [...Mps, ['zustand/travel', never]], Mcs>,
   options?: Omit<TravelsOptions<false, A>, 'mutable'>
 ) => StateCreator<T, Mps, [['zustand/travel', never], ...Mcs]>;
 
@@ -42,7 +42,60 @@ type Write<T, U> = Omit<T, keyof U> & U;
 
 type WithTravel<S> = Write<S, StoreTravel<S>>;
 
-type StoreTravel<S> = {
+type SkipTwo<T> = T extends { length: 0 }
+  ? []
+  : T extends { length: 1 }
+    ? []
+    : T extends { length: 0 | 1 }
+      ? []
+      : T extends [unknown, unknown, ...infer A]
+        ? A
+        : T extends [unknown, unknown?, ...infer A]
+          ? A
+          : T extends [unknown?, unknown?, ...infer A]
+            ? A
+            : never;
+
+type SetStateType<T extends unknown[]> = Exclude<T[0], (...args: any[]) => any>;
+
+type FunctionUpdater<T extends unknown[]> =
+  Extract<T[0], (...args: any[]) => any> extends (...args: infer A) => infer R
+    ? (...args: A) => R | void
+    : never;
+
+type StoreTravelSetState<S> = S extends {
+  setState: {
+    (...args: infer Sa1): infer Sr1;
+    (...args: infer Sa2): infer Sr2;
+  };
+}
+  ? {
+      /**
+       * Allow mutation-style updates by accepting updater functions that return void.
+       */
+      setState(
+        nextStateOrUpdater:
+          | SetStateType<Sa2>
+          | Partial<SetStateType<Sa2>>
+          | FunctionUpdater<Sa1>,
+        shouldReplace?: false,
+        ...args: SkipTwo<Sa1>
+      ): Sr1;
+      setState(
+        nextStateOrUpdater: SetStateType<Sa2> | FunctionUpdater<Sa2>,
+        shouldReplace: true,
+        ...args: SkipTwo<Sa2>
+      ): Sr2;
+    }
+  : S extends {
+        setState: (...args: infer Sa) => infer Sr;
+      }
+    ? {
+        setState: S['setState'];
+      }
+    : {};
+
+type StoreTravel<S> = StoreTravelSetState<S> & {
   getControls: () =>
     | TravelsControls<S, false>
     | ManualTravelsControls<S, false>;
@@ -186,8 +239,9 @@ const travelImpl: Travel =
 
       // Subscribe to travels changes and sync to Zustand
       travels.subscribe((state) => {
+        const nextState = { ...state, ...actions } as T;
         // Merge state with actions and replace entirely
-        (set as SetState<T>)({ ...state, ...actions }, true);
+        store.setState(nextState, true);
       });
 
       // Add getControls method to store

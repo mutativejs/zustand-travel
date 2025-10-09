@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { create, StoreApi } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Controls, travel } from '../src/index';
 
 describe('Zustand Travel Middleware', () => {
@@ -486,4 +487,118 @@ describe('Zustand Travel Middleware', () => {
       expect(useStore.getState().data.value).toBe(10);
     });
   });
+});
+
+it('test with persist middleware', async () => {
+  type State = {
+    count: number;
+  };
+
+  type Actions = {
+    increment: (qty: number) => void;
+    decrement: (qty: number) => void;
+  };
+
+  const storageMap = new Map<string, string>();
+  const storage = {
+    getItem: (name: string) => storageMap.get(name) ?? null,
+    setItem: (name: string, value: string) => {
+      storageMap.set(name, value);
+    },
+    removeItem: (name: string) => {
+      storageMap.delete(name);
+    },
+  };
+
+  // Seed persisted state to verify hydration and mutation interplay.
+  storageMap.set(
+    'counter',
+    JSON.stringify({
+      state: { count: 10 },
+      version: 0,
+    })
+  );
+
+  const useCountStore = create<State & Actions>()(
+    travel(
+      persist(
+        (set) => ({
+          count: 0,
+          increment: (qty: number) =>
+            set((state) => {
+              state.count += qty; // ⭐ Mutation style for efficient JSON Patches
+            }),
+          decrement: (qty: number) =>
+            set((state) => {
+              state.count -= qty; // ⭐ Recommended approach
+            }),
+        }),
+        {
+          name: 'counter',
+          storage: createJSONStorage(() => storage),
+        }
+      )
+    )
+  );
+
+  const persistApi = useCountStore.persist;
+  const waitForHydration = () =>
+    new Promise<void>((resolve) => {
+      if (persistApi.hasHydrated()) {
+        resolve();
+        return;
+      }
+      const unsub = persistApi.onFinishHydration(() => {
+        unsub();
+        resolve();
+      });
+    });
+
+  await waitForHydration();
+
+  const getPersistedCount = () => {
+    const raw = storageMap.get('counter');
+    return raw ? JSON.parse(raw).state.count : undefined;
+  };
+
+  expect(useCountStore.getState().count).toBe(10);
+  expect(getPersistedCount()).toBe(10);
+
+  const controls = useCountStore.getControls();
+  const { increment, decrement } = useCountStore.getState();
+
+  increment(5);
+  expect(useCountStore.getState().count).toBe(15);
+  expect(getPersistedCount()).toBe(15);
+
+  decrement(3);
+  expect(useCountStore.getState().count).toBe(12);
+  expect(getPersistedCount()).toBe(12);
+
+  controls.back();
+  expect(useCountStore.getState().count).toBe(15);
+  expect(getPersistedCount()).toBe(15);
+
+  controls.forward();
+  expect(useCountStore.getState().count).toBe(12);
+  expect(getPersistedCount()).toBe(12);
+
+  expect(persistApi.hasHydrated()).toBe(true);
+  expect(persistApi.getOptions().name).toBe('counter');
+
+  storageMap.set(
+    'counter',
+    JSON.stringify({
+      state: { count: 21 },
+      version: 0,
+    })
+  );
+
+  await persistApi.rehydrate();
+  expect(useCountStore.getState().count).toBe(21);
+  expect(getPersistedCount()).toBe(21);
+
+  increment(1);
+  expect(useCountStore.getState().count).toBe(22);
+  expect(getPersistedCount()).toBe(22);
 });
