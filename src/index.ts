@@ -241,7 +241,7 @@ const travelImpl: Travel =
       travels.subscribe((state) => {
         const nextState = { ...state, ...actions } as T;
         // Merge state with actions and replace entirely
-        store.setState(nextState, true);
+        (store.setState as SetState<T>)(nextState, true);
       });
 
       // Add getControls method to store
