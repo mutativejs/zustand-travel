@@ -273,6 +273,45 @@ const useTodoStore = create<State & Actions>()(
 );
 ```
 
+zustand-travel with other zustand middleware:
+
+```ts
+import { create } from "zustand";
+import { travel } from "zustand-travel";
+import { persist } from "zustand/middleware";
+
+type State = {
+  count: number;
+};
+
+type Actions = {
+  increment: (qty: number) => void;
+  decrement: (qty: number) => void;
+};
+
+export const useCountStore = create<State & Actions>()(
+  travel(
+    persist(
+      (set) => ({
+        count: 0,
+        increment: (qty: number) =>
+          set((state) => {
+            state.count += qty;
+          }),
+        decrement: (qty: number) =>
+          set((state) => {
+            state.count -= qty;
+          }),
+      }),
+      {
+        name: "counter",
+      }
+    )
+  )
+);
+```
+
+
 ### Using Controls in React
 
 ```tsx
