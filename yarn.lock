@@ -3919,10 +3919,10 @@ tr46@^6.0.0:
   dependencies:
     punycode "^2.3.1"
 
-travels@^0.7.0:
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/travels/-/travels-0.7.0.tgz#8c6ddf2802f6cb4c59c5857cf1c92912e0f7a1ef"
-  integrity sha512-4MVdWct7TWVIU5jPYz6rWQmML3iVlUzXv1YBqyBO4ONpERlg3Z/PfOoUCFCXY8lzc57BsJlRvHuPKqN1WML2+Q==
+travels@^0.8.0:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/travels/-/travels-0.8.0.tgz#03e0e3a3963ff7073cfef2b60fdb6ead331a39db"
+  integrity sha512-MkIH+ICgNER0XF9SE3bMsz3H2m0at/DCoUcvOhdFezkcSUuBIQzURkf5V0q4xpw4MPmTi15CguZZmbJqyMXk5A==
 
 ts-api-utils@^2.1.0:
   version "2.1.0"
