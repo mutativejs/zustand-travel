@@ -69,12 +69,18 @@ controls.reset(); // Reset to initial state
 travel(initializer, options?)
 ```
 
-| Option            | Type          | Default | Description                                              |
-| ----------------- | ------------- | ------- | -------------------------------------------------------- |
-| `maxHistory`      | number        | 10      | Maximum number of history entries to keep                |
-| `autoArchive`     | boolean       | true    | Auto-archive changes (see [Archive Mode](#archive-mode)) |
-| `initialPosition` | number        | 0       | Initial position in history                              |
-| `initialPatches`  | TravelPatches | -       | Initial patches for persistence                          |
+| Option             | Type                      | Default                                                                                                                                                                         | Description                      |
+| ------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `initialState`     | S                         | Your application's starting state (must be JSON-serializable)                                                                                                                   | (required)                       |
+| `maxHistory`       | number                    | Maximum number of history entries to keep. Older entries are dropped.                                                                                                           | 10                               |
+| `initialPatches`   | TravelPatches             | Restore saved patches when loading from storage                                                                                                                                 | {patches: [],inversePatches: []} |
+| `initialPosition`  | number                    | Restore position when loading from storage                                                                                                                                      | 0                                |
+| `autoArchive`      | boolean                   | Automatically save each change to history (see [Archive Mode](#archive-mode))                                                                                                   | true                             |
+| `mutable`          | boolean                   | Whether to mutate the state in place (for observable state like MobX, Vue, Pinia)                                                                                               | false                            |
+| `patchesOptions`   | boolean ｜ PatchesOptions | Customize JSON Patch format. Supports `{ pathAsArray: boolean }` to control path format. See [Mutative patches docs](https://mutative.js.org/docs/api-reference/create#patches) | `true` (enable patches)          |
+| `enableAutoFreeze` | boolean                   | Prevent accidental state mutations outside setState ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options))                               | false                            |
+| `strict`           | boolean                   | Enable stricter immutability checks ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options))                                               | false                            |
+| `mark`             | Mark<O, F>[]              | Mark certain objects as immutable ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options))                                                 | () => void                       |
 
 ### Store Methods
 
@@ -142,6 +148,7 @@ set((state) => {
 ```
 
 **Only use direct value (`set(value)`) for special cases:**
+
 - Restoring state from persistence
 - Setting initial values
 - Complete state replacement
@@ -174,6 +181,7 @@ set({ count: 5 }); // Internally: record `{ count: 5 }` as a patch
 ```
 
 **The benefits of efficient patches:**
+
 - **Smaller memory footprint**: History stores only changed properties
 - **Faster undo/redo**: Applying small patches is quicker than replacing entire objects
 - **Better performance**: Especially important for complex, deeply nested state
@@ -276,9 +284,9 @@ const useTodoStore = create<State & Actions>()(
 zustand-travel with other zustand middleware:
 
 ```ts
-import { create } from "zustand";
-import { travel } from "zustand-travel";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { travel } from 'zustand-travel';
+import { persist } from 'zustand/middleware';
 
 type State = {
   count: number;
@@ -304,13 +312,12 @@ export const useCountStore = create<State & Actions>()(
           }),
       }),
       {
-        name: "counter",
+        name: 'counter',
       }
     )
   )
 );
 ```
-
 
 ### Using Controls in React
 
@@ -324,10 +331,7 @@ function TodoApp() {
       <TodoList todos={todos} onToggle={toggleTodo} />
 
       <div className="controls">
-        <button
-          onClick={() => controls.back()}
-          disabled={!controls.canBack()}
-        >
+        <button onClick={() => controls.back()} disabled={!controls.canBack()}>
           Undo
         </button>
         <button
@@ -336,9 +340,7 @@ function TodoApp() {
         >
           Redo
         </button>
-        <button onClick={() => controls.reset()}>
-          Reset
-        </button>
+        <button onClick={() => controls.reset()}>Reset</button>
       </div>
 
       <div>
