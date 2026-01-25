@@ -3919,10 +3919,10 @@ tr46@^6.0.0:
   dependencies:
     punycode "^2.3.1"
 
-travels@^0.9.0:
-  version "0.9.0"
-  resolved "https://registry.yarnpkg.com/travels/-/travels-0.9.0.tgz#58b65428f683a5722f98e0956ea1a99bf6640ca6"
-  integrity sha512-VKKGNNUSB7QiTgcOk/DPpTaEIQQyvfFAbYdiIEcKlzaUqhrWhuyP6wdqx2h1AMhquHaQmC0pMIqmKmdp6qMzIA==
+travels@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/travels/-/travels-1.0.0.tgz#b587d72af129632e4173d408aae9415e00220be1"
+  integrity sha512-v63CqusZC0DZa/7K2DF84W+MaV9lp40We+1q8zOMa1X0nGYCwcWtJ8wFxZRbaiPazU7/2mLYMIvIjfqOZh29hA==
 
 ts-api-utils@^2.1.0:
   version "2.1.0"
@@ -4318,7 +4318,7 @@ yocto-queue@^0.1.0:
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
-zustand@^5.0.8:
-  version "5.0.8"
-  resolved "https://registry.yarnpkg.com/zustand/-/zustand-5.0.8.tgz#b998a0c088c7027a20f2709141a91cb07ac57f8a"
-  integrity sha512-gyPKpIaxY9XcO2vSMrLbiER7QMAMGOQZVRdJ6Zi782jkbzZygq5GI9nG8g+sMgitRtndwaBSl7uiqC49o1SSiw==
+zustand@^5.0.10:
+  version "5.0.10"
+  resolved "https://registry.yarnpkg.com/zustand/-/zustand-5.0.10.tgz#4db510c0c4c25a5f1ae43227b307ddf1641a3210"
+  integrity sha512-U1AiltS1O9hSy3rul+Ub82ut2fqIAefiSuwECWt6jlMVUGejvf+5omLcRBSzqbRagSM3hQZbtzdeRc6QVScXTg==
