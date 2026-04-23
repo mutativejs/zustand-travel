@@ -1,8 +1,4 @@
-import type {
-  StateCreator,
-  StoreMutatorIdentifier,
-  StoreApi,
-} from 'zustand/vanilla';
+import type { StateCreator, StoreMutatorIdentifier } from 'zustand/vanilla';
 import {
   Travels,
   type TravelsOptions,
