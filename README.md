@@ -32,12 +32,6 @@ pnpm add zustand-travel travels mutative zustand
 | `>= 1.1.0`     | `>= 1.2.0` (required for `rebase` support) |
 | `< 1.1.0`      | `< 1.2.0`                                  |
 
-If you are on `zustand-travel < 1.1.0`, pin `travels` below `1.2.0`, for example:
-
-```bash
-npm install zustand-travel@^1.0 travels@^1.0
-```
-
 ## Quick Start
 
 ```typescript
