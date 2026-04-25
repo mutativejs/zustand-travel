@@ -4,6 +4,8 @@ import {
   type TravelsOptions,
   type TravelsControls,
   type ManualTravelsControls,
+  type RebasableTravelsControls,
+  type RebasableManualTravelsControls,
   type Updater,
   type PatchesOption,
 } from 'travels';
@@ -93,8 +95,8 @@ type StoreTravelSetState<S> = S extends {
 
 type StoreTravel<S> = StoreTravelSetState<S> & {
   getControls: () =>
-    | TravelsControls<S, false>
-    | ManualTravelsControls<S, false>;
+    | RebasableTravelsControls<S, false>
+    | RebasableManualTravelsControls<S, false>;
 };
 
 export type Controls<
@@ -102,7 +104,9 @@ export type Controls<
   A extends boolean = false,
   F extends boolean = false,
   P extends PatchesOption = {},
-> = A extends true ? TravelsControls<S, F, P> : ManualTravelsControls<S, F, P>;
+> = A extends true
+  ? RebasableTravelsControls<S, F, P>
+  : RebasableManualTravelsControls<S, F, P>;
 
 // ============================================================================
 // Helper Functions
@@ -290,6 +294,7 @@ const travelImpl: Travel =
  * controls.back();    // Undo
  * controls.forward(); // Redo
  * controls.reset();   // Reset to initial state
+ * controls.rebase();  // Make the current state the new baseline
  * ```
  *
  * @param initializer - The state creator function
@@ -307,6 +312,8 @@ export const travel = travelImpl as Travel;
 export type {
   TravelsControls,
   ManualTravelsControls,
+  RebasableTravelsControls,
+  RebasableManualTravelsControls,
   TravelPatches,
 } from 'travels';
 
@@ -326,12 +333,15 @@ declare module 'zustand/vanilla' {
      * controls.back();     // Undo
      * controls.forward();  // Redo
      * controls.reset();    // Reset to initial state
+     * controls.rebase();   // Make the current state the new baseline
      * ```
      */
     getControls?: <
       F extends boolean = false,
       A extends boolean = true,
-    >() => A extends true ? TravelsControls<T, F> : ManualTravelsControls<T, F>;
+    >() => A extends true
+      ? RebasableTravelsControls<T, F>
+      : RebasableManualTravelsControls<T, F>;
   }
 }
 

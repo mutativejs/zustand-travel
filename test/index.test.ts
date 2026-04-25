@@ -87,6 +87,7 @@ describe('Zustand Travel Middleware', () => {
       expect(controls.back).toBeDefined();
       expect(controls.forward).toBeDefined();
       expect(controls.reset).toBeDefined();
+      expect(controls.rebase).toBeDefined();
       expect(controls.canBack).toBeDefined();
       expect(controls.canForward).toBeDefined();
     });
@@ -183,6 +184,39 @@ describe('Zustand Travel Middleware', () => {
       controls.forward();
       expect(controls.canBack()).toBe(true);
       expect(controls.canForward()).toBe(false);
+    });
+
+    it('should support rebase in auto archive mode', () => {
+      const useStore = create<{ count: number; increment: () => void }>()(
+        travel((set) => ({
+          count: 0,
+          increment: () =>
+            set((state) => {
+              state.count += 1;
+            }),
+        }))
+      );
+
+      const { increment } = useStore.getState();
+      const controls = useStore.getControls();
+
+      increment();
+      increment();
+      expect(useStore.getState().count).toBe(2);
+      expect(controls.position).toBe(2);
+
+      controls.rebase();
+      expect(useStore.getState().count).toBe(2);
+      expect(controls.position).toBe(0);
+      expect(controls.canBack()).toBe(false);
+      expect(controls.canForward()).toBe(false);
+
+      increment();
+      expect(useStore.getState().count).toBe(3);
+
+      controls.reset();
+      expect(useStore.getState().count).toBe(2);
+      expect(controls.position).toBe(0);
     });
   });
 
@@ -297,6 +331,48 @@ describe('Zustand Travel Middleware', () => {
 
       controls.back();
       expect(useStore.getState().count).toBe(0);
+    });
+
+    it('should rebase pending unarchived changes in manual archive mode', () => {
+      const useStore = create<{ count: number; increment: () => void }>()(
+        travel(
+          (set) => ({
+            count: 0,
+            increment: () =>
+              set((state) => {
+                state.count += 1;
+              }),
+          }),
+          { autoArchive: false }
+        )
+      );
+
+      const controls = useStore.getControls() as Controls<
+        StoreApi<{
+          count: number;
+        }>,
+        false
+      >;
+      const { increment } = useStore.getState();
+
+      increment();
+      increment();
+      expect(useStore.getState().count).toBe(2);
+      expect(controls.canArchive()).toBe(true);
+
+      controls.rebase();
+      expect(useStore.getState().count).toBe(2);
+      expect(controls.position).toBe(0);
+      expect(controls.canBack()).toBe(false);
+      expect(controls.canForward()).toBe(false);
+      expect(controls.canArchive()).toBe(false);
+
+      increment();
+      expect(useStore.getState().count).toBe(3);
+
+      controls.reset();
+      expect(useStore.getState().count).toBe(2);
+      expect(controls.position).toBe(0);
     });
   });
 

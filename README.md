@@ -8,7 +8,7 @@ A powerful and high-performance undo/redo middleware for Zustand with [Travels](
 
 ## Features
 
-- ✨ **Time Travel**: Full undo/redo support for your Zustand stores
+- ✨ **Time Travel**: Full undo/redo, reset, and rebase support for your Zustand stores
 - 🎯 **Mutation updates**: Write mutable code that produces immutable updates
 - 📦 **Lightweight**: Built on efficient JSON Patch storage
 - ⚡ **High Performance**: Powered by [Mutative](https://github.com/unadlib/mutative) (10x faster than Immer)
@@ -59,7 +59,14 @@ const controls = useCountStore.getControls();
 controls.back(); // Undo
 controls.forward(); // Redo
 controls.reset(); // Reset to initial state
+controls.rebase(); // Make the current state the new baseline
 ```
+
+Important behavior:
+
+- `travel(...)` expects the initializer to return an **object store**.
+- Only non-function fields are tracked in history. Action functions are preserved and reattached after undo/redo.
+- Plain serializable data is the safest default for persistence. If you persist complex values such as `Date`, `Map`, or `Set`, use a custom serialization strategy.
 
 ## API
 
@@ -69,18 +76,19 @@ controls.reset(); // Reset to initial state
 travel(initializer, options?)
 ```
 
-| Option             | Type                      | Default                                                                                                                                                                         | Description                      |
-| ------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `initialState`     | S                         | Your application's starting state (must be JSON-serializable)                                                                                                                   | (required)                       |
-| `maxHistory`       | number                    | Maximum number of history entries to keep. Older entries are dropped.                                                                                                           | 10                               |
-| `initialPatches`   | TravelPatches             | Restore saved patches when loading from storage                                                                                                                                 | {patches: [],inversePatches: []} |
-| `initialPosition`  | number                    | Restore position when loading from storage                                                                                                                                      | 0                                |
-| `autoArchive`      | boolean                   | Automatically save each change to history (see [Archive Mode](#archive-mode))                                                                                                   | true                             |
-| `mutable`          | boolean                   | Whether to mutate the state in place (for observable state like MobX, Vue, Pinia)                                                                                               | false                            |
-| `patchesOptions`   | boolean ｜ PatchesOptions | Customize JSON Patch format. Supports `{ pathAsArray: boolean }` to control path format. See [Mutative patches docs](https://mutative.js.org/docs/api-reference/create#patches) | `true` (enable patches)          |
-| `enableAutoFreeze` | boolean                   | Prevent accidental state mutations outside setState ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options))                               | false                            |
-| `strict`           | boolean                   | Enable stricter immutability checks ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options))                                               | false                            |
-| `mark`             | Mark<O, F>[]              | Mark certain objects as immutable ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options))                                                 | () => void                       |
+The initial data state comes from `initializer`, not from `options`. `options` are forwarded to `Travels`, except `mutable`, which is intentionally disabled because Zustand already manages immutable store replacement.
+
+| Option                  | Type                      | Default                                                                                                                                                                                | Description                      |
+| ----------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `maxHistory`            | number                    | 10                                                                                                                                                                                     | Maximum number of history entries to keep. Must be a non-negative integer. `0` disables undo/redo history. |
+| `initialPatches`        | TravelPatches             | {patches: [],inversePatches: []}                                                                                                                                                        | Restore saved patches when loading from storage. If history exceeds `maxHistory`, older entries are trimmed during initialization. |
+| `strictInitialPatches`  | boolean                   | false                                                                                                                                                                                  | Whether invalid `initialPatches` should throw. When `false`, invalid patches are discarded and history starts empty. |
+| `initialPosition`       | number                    | 0                                                                                                                                                                                      | Restore position when loading from storage. Invalid or out-of-range values are clamped after any history trimming. |
+| `autoArchive`           | boolean                   | true                                                                                                                                                                                   | Automatically save each change to history (see [Archive Mode](#archive-mode)). |
+| `patchesOptions`        | boolean ｜ PatchesOptions | `true` (enable patches)                                                                                                                                                                | Customize JSON Patch format. Common options include `{ pathAsArray?: boolean, arrayLengthAssignment?: boolean }`. See [Mutative patches docs](https://mutative.js.org/docs/api-reference/create#patches). |
+| `enableAutoFreeze`      | boolean                   | false                                                                                                                                                                                  | Prevent accidental state mutations outside `set` ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)). |
+| `strict`                | boolean                   | false                                                                                                                                                                                  | Enable stricter immutability checks ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)). |
+| `mark`                  | Mark<O, F>[]              | `() => void`                                                                                                                                                                           | Mark certain objects as immutable ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)). |
 
 ### Store Methods
 
@@ -95,6 +103,7 @@ controls.back(amount?: number)      // Go back in history
 controls.forward(amount?: number)   // Go forward in history
 controls.go(position: number)       // Go to specific position
 controls.reset()                    // Reset to initial state
+controls.rebase()                   // Clear history and make current state the new baseline
 controls.canBack(): boolean         // Check if can go back
 controls.canForward(): boolean      // Check if can go forward
 controls.getHistory(): State[]      // Get full history
@@ -110,9 +119,13 @@ controls.archive()                  // Archive current changes
 controls.canArchive(): boolean      // Check if can archive
 ```
 
+`getControls()` returns the underlying Travels controls object. It has a stable reference with live getters such as `position` and `patches`. Reading `controls.position` during render is fine, but do not expect the `controls` object identity itself to change for `useEffect` dependencies or `React.memo` props.
+
+`controls.rebase()` is a destructive operation. It discards all undo/redo history and makes the current tracked state the new baseline. After rebasing, `controls.reset()` returns to that rebased snapshot, not the original initializer state. In manual archive mode, pending unarchived changes are included in the new baseline.
+
 ## Set Function Modes
 
-The middleware supports three ways to update state:
+The middleware supports four update styles. They are similar to Zustand at the call site, but the semantics are not identical in every case.
 
 ### 1. Mutation Style
 
@@ -123,69 +136,92 @@ set((state) => {
 });
 ```
 
-### 2. Direct Value
+Preferred for most updates, especially nested changes.
+
+### 2. Shallow Merge Value
 
 ```typescript
 set({ count: 5 });
 ```
 
-### 3. Return Value Function
+Equivalent to a top-level `Object.assign(draft, partial)` merge into the tracked data state. This matches the common Zustand `set({ ... })` mental model for shallow updates.
+
+### 3. Replace Value
 
 ```typescript
-set(() => ({ count: 10 }));
+set({ count: 10, user: { name: 'Alice' } }, true);
 ```
+
+Use `replace: true` when you intentionally want to replace the entire tracked data state, such as full rehydration.
+
+### 4. Return Value Function
+
+```typescript
+set((state) => ({
+  ...state,
+  count: state.count + 1,
+}));
+```
+
+Function updaters are passed straight through to `travels.setState(...)`. If your function **returns an object**, that object becomes the next tracked data state. Unlike Zustand's common partial-update usage, this is **not** treated as a shallow merge. Return the complete next state object, or prefer mutation style / direct value merge.
 
 ### Recommended Usage
 
-**Use mutation style (`set(fn)`) for most state updates** to take full advantage of Mutative's JSON Patch mechanism:
+**Use mutation style (`set(fn)`) for most state updates**:
 
 ```typescript
-// ✅ Recommended: Efficient JSON Patches
+// ✅ Recommended: clear intent, works well for nested updates
 set((state) => {
   state.count += 1;
   state.user.name = 'Alice';
 });
 ```
 
-**Only use direct value (`set(value)`) for special cases:**
+**Use direct value (`set({ ... })`) for shallow top-level merges:**
 
-- Restoring state from persistence
-- Setting initial values
-- Complete state replacement
+- Updating a few top-level fields
+- Preserving standard Zustand ergonomics
+- Simple persistence-related merges
 
 ```typescript
-// ✅ Good use case: Restoring from persistence
+set({ count: 5, loading: false });
+```
+
+**Use `replace: true` for full replacement:**
+
+- Restoring a full snapshot
+- Resetting to a known complete data state
+- Schema migrations that replace the whole tracked object
+
+```typescript
+// ✅ Full replacement
 const loadFromStorage = () => {
   const savedState = JSON.parse(localStorage.getItem('state'));
   set(savedState, true); // Replace entire state
 };
 ```
 
-**Why mutation style is more efficient:**
-
-When you use mutation style, Mutative tracks exactly which properties changed and generates minimal JSON Patches. For example:
+**Use return-value functions only when you are computing the entire next state:**
 
 ```typescript
-// Only generates a patch for the changed property
-set((state) => {
-  // ✅ Efficient: Only tracks the changed property
-  state.count = 5; // Patch: [{ op: 'replace', path: 'count', value: 5 }]
-});
+// ✅ Safe: returns the full next tracked state
+set((state) => ({
+  ...state,
+  count: state.count + 1,
+}));
 ```
-
-By contrast, direct value updates are internally converted into record object patches rather than concise patches:
 
 ```typescript
-// ❌ Inefficient: Records the entire object as a patch
-set({ count: 5 }); // Internally: record `{ count: 5 }` as a patch
+// ⚠️ Risky: siblings such as `user` will be dropped
+set(() => ({ count: 10 }));
 ```
 
-**The benefits of efficient patches:**
+**Why mutation style is usually the best default:**
 
-- **Smaller memory footprint**: History stores only changed properties
-- **Faster undo/redo**: Applying small patches is quicker than replacing entire objects
-- **Better performance**: Especially important for complex, deeply nested state
-- **Precise tracking**: Only actual changes are recorded
+- **Clear semantics**: No ambiguity between shallow merge and full replacement
+- **Nested updates stay ergonomic**: Update deep state without rebuilding objects
+- **Patch history stays precise**: Only actual changed paths are recorded
+- **Less footgun-prone**: Harder to accidentally replace sibling fields
 
 ## Archive Mode
 
@@ -237,6 +273,8 @@ increment(); // Temporary change
 increment(); // Temporary change
 save(); // Archive as single entry
 ```
+
+`controls.rebase()` is available in both archive modes. It is useful after loading or confirming a snapshot that should become the new reset target.
 
 ## Examples
 
@@ -341,6 +379,7 @@ function TodoApp() {
           Redo
         </button>
         <button onClick={() => controls.reset()}>Reset</button>
+        <button onClick={() => controls.rebase()}>Rebase</button>
       </div>
 
       <div>
@@ -351,9 +390,11 @@ function TodoApp() {
 }
 ```
 
+If you pass `controls` through `React.memo` boundaries or use it directly as a `useEffect` / `useMemo` dependency, remember that `controls` itself is stable. Pass derived primitives such as `controls.position`, `controls.canBack()`, and `controls.canForward()` instead.
+
 ### Persistence
 
-Persistence is a perfect use case for direct value initialization, as you're restoring a complete state:
+Persistence is a natural fit for initializing the store from a full snapshot:
 
 ```typescript
 // Save state for persistence
@@ -379,17 +420,43 @@ const loadFromStorage = () => {
 
 const { state, patches, position } = loadFromStorage();
 
-// ✅ Direct value initialization is appropriate here
-// We're setting the complete initial state from storage
+// ✅ Initialize the store from the persisted full data snapshot
 const useStore = create<State>()(
   travel(() => state, {
     initialPatches: patches,
     initialPosition: position,
+    // Optional: strictInitialPatches: true,
   })
 );
 ```
 
 **Note**: The initializer function `() => state` is called during setup with the `isInitializing` flag set to `true`, so it bypasses the travel tracking. This is the correct approach for setting initial state from persistence.
+
+If persisted history is longer than `maxHistory`, Travels keeps only the most recent window and clamps `initialPosition` into that retained range during initialization.
+
+If you later replace the live store from an out-of-band snapshot and want future `reset()` calls to return to that snapshot, do not call `useStore.setState(...)` directly. That bypasses `travels` history tracking. Route the snapshot through a store action that uses the middleware-provided `set(..., true)` and then call `rebase()`:
+
+```typescript
+type Actions = {
+  replaceFromSnapshot: (nextState: State) => void;
+};
+
+const useStore = create<State & Actions>()(
+  travel((set) => ({
+    ...state,
+    replaceFromSnapshot: (nextState) => {
+      set(nextState, true);
+      useStore.getControls().rebase();
+    },
+  }))
+);
+
+const hydrateFromServer = async () => {
+  const nextState = await fetch('/api/state').then((res) => res.json());
+
+  useStore.getState().replaceFromSnapshot(nextState);
+};
+```
 
 ## TypeScript Support
 
@@ -422,6 +489,7 @@ const useStore = create<State & Actions>()(
 // Full type safety
 const controls = useStore.getControls(); // Typed controls
 const history = controls.getHistory(); // State[] with full types
+controls.rebase(); // Typed and available on the returned controls
 ```
 
 ## How It Works
@@ -434,12 +502,14 @@ const history = controls.getHistory(); // State[] with full types
 2. **State Separation**:
    - Only data properties are tracked by Travels
    - Action functions are preserved separately
+   - The root store must be an object so data and actions can be separated
    - Memory efficient: no functions in history
 
 3. **Smart Updater Handling**:
-   - **Functions**: Pass directly to travels (auto-detects mutation/return)
-   - **Values with replace**: Direct replacement
-   - **Partial updates**: Convert to mutation with `Object.assign`
+   - **Function mutations**: Pass directly to Travels and patch the draft
+   - **Returned values from functions**: Treat as the next full tracked data state
+   - **Values with `replace: true`**: Replace the tracked data state directly
+   - **Values without `replace`**: Convert to a shallow merge via `Object.assign`
 
 4. **Bi-directional Sync**:
    - User actions → `travelSet` → `travels.setState`
