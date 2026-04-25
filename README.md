@@ -25,6 +25,19 @@ yarn add zustand-travel travels mutative zustand
 pnpm add zustand-travel travels mutative zustand
 ```
 
+### Version compatibility
+
+| zustand-travel | travels                                    |
+| -------------- | ------------------------------------------ |
+| `>= 1.1.0`     | `>= 1.2.0` (required for `rebase` support) |
+| `< 1.1.0`      | `< 1.2.0`                                  |
+
+If you are on `zustand-travel < 1.1.0`, pin `travels` below `1.2.0`, for example:
+
+```bash
+npm install zustand-travel@^1.0 travels@^1.0
+```
+
 ## Quick Start
 
 ```typescript
@@ -78,17 +91,17 @@ travel(initializer, options?)
 
 The initial data state comes from `initializer`, not from `options`. `options` are forwarded to `Travels`, except `mutable`, which is intentionally disabled because Zustand already manages immutable store replacement.
 
-| Option                  | Type                      | Default                                                                                                                                                                                | Description                      |
-| ----------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `maxHistory`            | number                    | 10                                                                                                                                                                                     | Maximum number of history entries to keep. Must be a non-negative integer. `0` disables undo/redo history. |
-| `initialPatches`        | TravelPatches             | {patches: [],inversePatches: []}                                                                                                                                                        | Restore saved patches when loading from storage. If history exceeds `maxHistory`, older entries are trimmed during initialization. |
-| `strictInitialPatches`  | boolean                   | false                                                                                                                                                                                  | Whether invalid `initialPatches` should throw. When `false`, invalid patches are discarded and history starts empty. |
-| `initialPosition`       | number                    | 0                                                                                                                                                                                      | Restore position when loading from storage. Invalid or out-of-range values are clamped after any history trimming. |
-| `autoArchive`           | boolean                   | true                                                                                                                                                                                   | Automatically save each change to history (see [Archive Mode](#archive-mode)). |
-| `patchesOptions`        | boolean ｜ PatchesOptions | `true` (enable patches)                                                                                                                                                                | Customize JSON Patch format. Common options include `{ pathAsArray?: boolean, arrayLengthAssignment?: boolean }`. See [Mutative patches docs](https://mutative.js.org/docs/api-reference/create#patches). |
-| `enableAutoFreeze`      | boolean                   | false                                                                                                                                                                                  | Prevent accidental state mutations outside `set` ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)). |
-| `strict`                | boolean                   | false                                                                                                                                                                                  | Enable stricter immutability checks ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)). |
-| `mark`                  | Mark<O, F>[]              | `() => void`                                                                                                                                                                           | Mark certain objects as immutable ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)). |
+| Option                 | Type                      | Default                          | Description                                                                                                                                                                                               |
+| ---------------------- | ------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `maxHistory`           | number                    | 10                               | Maximum number of history entries to keep. Must be a non-negative integer. `0` disables undo/redo history.                                                                                                |
+| `initialPatches`       | TravelPatches             | {patches: [],inversePatches: []} | Restore saved patches when loading from storage. If history exceeds `maxHistory`, older entries are trimmed during initialization.                                                                        |
+| `strictInitialPatches` | boolean                   | false                            | Whether invalid `initialPatches` should throw. When `false`, invalid patches are discarded and history starts empty.                                                                                      |
+| `initialPosition`      | number                    | 0                                | Restore position when loading from storage. Invalid or out-of-range values are clamped after any history trimming.                                                                                        |
+| `autoArchive`          | boolean                   | true                             | Automatically save each change to history (see [Archive Mode](#archive-mode)).                                                                                                                            |
+| `patchesOptions`       | boolean ｜ PatchesOptions | `true` (enable patches)          | Customize JSON Patch format. Common options include `{ pathAsArray?: boolean, arrayLengthAssignment?: boolean }`. See [Mutative patches docs](https://mutative.js.org/docs/api-reference/create#patches). |
+| `enableAutoFreeze`     | boolean                   | false                            | Prevent accidental state mutations outside `set` ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                           |
+| `strict`               | boolean                   | false                            | Enable stricter immutability checks ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                        |
+| `mark`                 | Mark<O, F>[]              | `() => void`                     | Mark certain objects as immutable ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                          |
 
 ### Store Methods
 
