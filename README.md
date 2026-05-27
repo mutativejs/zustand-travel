@@ -29,6 +29,7 @@ pnpm add zustand-travel travels mutative zustand
 
 | zustand-travel | travels                                    |
 | -------------- | ------------------------------------------ |
+| `>= 1.1.1`     | `>= 1.3.1` (persistence APIs)              |
 | `>= 1.1.0`     | `>= 1.2.0` (required for `rebase` support) |
 | `< 1.1.0`      | `< 1.2.0`                                  |
 
@@ -85,17 +86,22 @@ travel(initializer, options?)
 
 The initial data state comes from `initializer`, not from `options`. `options` are forwarded to `Travels`, except `mutable`, which is intentionally disabled because Zustand already manages immutable store replacement.
 
-| Option                 | Type                      | Default                          | Description                                                                                                                                                                                               |
-| ---------------------- | ------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `maxHistory`           | number                    | 10                               | Maximum number of history entries to keep. Must be a non-negative integer. `0` disables undo/redo history.                                                                                                |
-| `initialPatches`       | TravelPatches             | {patches: [],inversePatches: []} | Restore saved patches when loading from storage. If history exceeds `maxHistory`, older entries are trimmed during initialization.                                                                        |
-| `strictInitialPatches` | boolean                   | false                            | Whether invalid `initialPatches` should throw. When `false`, invalid patches are discarded and history starts empty.                                                                                      |
-| `initialPosition`      | number                    | 0                                | Restore position when loading from storage. Invalid or out-of-range values are clamped after any history trimming.                                                                                        |
-| `autoArchive`          | boolean                   | true                             | Automatically save each change to history (see [Archive Mode](#archive-mode)).                                                                                                                            |
-| `patchesOptions`       | boolean ｜ PatchesOptions | `true` (enable patches)          | Customize JSON Patch format. Common options include `{ pathAsArray?: boolean, arrayLengthAssignment?: boolean }`. See [Mutative patches docs](https://mutative.js.org/docs/api-reference/create#patches). |
-| `enableAutoFreeze`     | boolean                   | false                            | Prevent accidental state mutations outside `set` ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                           |
-| `strict`               | boolean                   | false                            | Enable stricter immutability checks ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                        |
-| `mark`                 | Mark<O, F>[]              | `() => void`                     | Mark certain objects as immutable ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                          |
+| Option                   | Type                      | Default                          | Description                                                                                                                                                                                               |
+| ------------------------ | ------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `maxHistory`             | number                    | 10                               | Maximum number of history entries to keep. Must be a non-negative integer. `0` disables undo/redo history.                                                                                                |
+| `history`                | TravelsHistory            | undefined                        | Restore validated history returned by `Travels.deserialize(...)`; overrides `initialPatches` and `initialPosition` when provided.                                                                         |
+| `initialPatches`         | TravelPatches             | {patches: [],inversePatches: []} | Restore saved patches when loading from storage. If history exceeds `maxHistory`, older entries are trimmed during initialization.                                                                        |
+| `strictInitialPatches`   | boolean                   | false                            | Whether invalid `initialPatches` should throw. When `false`, invalid patches are discarded and history starts empty.                                                                                      |
+| `initialPosition`        | number                    | 0                                | Restore position when loading from storage. Invalid or out-of-range values are clamped after any history trimming.                                                                                        |
+| `autoArchive`            | boolean                   | true                             | Automatically save each change to history (see [Archive Mode](#archive-mode)).                                                                                                                            |
+| `warnOnUnsupportedState` | boolean                   | development only                 | Warn in development when state has weak JSON Patch or persistence semantics.                                                                                                                              |
+| `onError`                | (error) => void           | undefined                        | Receive wrapped Travels operation errors.                                                                                                                                                                 |
+| `onBranchDiscard`        | (event) => void           | undefined                        | Observe redo history discarded by a new edit.                                                                                                                                                             |
+| `devtools`               | (event) => void           | undefined                        | Observe core Travels events for custom devtools.                                                                                                                                                          |
+| `patchesOptions`         | boolean ｜ PatchesOptions | `true` (enable patches)          | Customize JSON Patch format. Common options include `{ pathAsArray?: boolean, arrayLengthAssignment?: boolean }`. See [Mutative patches docs](https://mutative.js.org/docs/api-reference/create#patches). |
+| `enableAutoFreeze`       | boolean                   | false                            | Prevent accidental state mutations outside `set` ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                           |
+| `strict`                 | boolean                   | false                            | Enable stricter immutability checks ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                        |
+| `mark`                   | Mark<O, F>[]              | `() => void`                     | Mark certain objects as immutable ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                          |
 
 ### Store Methods
 
@@ -436,6 +442,41 @@ const useStore = create<State>()(
   })
 );
 ```
+
+With `travels@1.3.1` or newer, you can validate a versioned snapshot before passing it to the middleware:
+
+```typescript
+import { Travels, type TravelsSerializedHistory } from 'travels';
+
+const saveSnapshot = () => {
+  const controls = useStore.getControls();
+
+  const snapshot: TravelsSerializedHistory<State> = {
+    version: 1,
+    state: useStore.getState(),
+    patches: controls.patches,
+    position: controls.position,
+  };
+
+  localStorage.setItem('travel-history', JSON.stringify(snapshot));
+};
+
+const loadSnapshot = () => {
+  const raw = localStorage.getItem('travel-history');
+
+  return raw ? Travels.deserialize<State>(raw) : undefined;
+};
+
+const history = loadSnapshot();
+
+const useStore = create<State>()(
+  travel(() => history?.state ?? { count: 0 }, {
+    history,
+  })
+);
+```
+
+`history` overrides `initialPatches` and `initialPosition` when both forms are provided. Use the legacy `initialPatches` / `initialPosition` path when you already persist those fields separately; use `Travels.deserialize(...)` when you persist one versioned snapshot and want schema validation before store creation.
 
 **Note**: The initializer function `() => state` is called during setup with the `isInitializing` flag set to `true`, so it bypasses the travel tracking. This is the correct approach for setting initial state from persistence.
 

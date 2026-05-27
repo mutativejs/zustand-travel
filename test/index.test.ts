@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { create, StoreApi } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { Travels } from 'travels';
 import { Controls, travel } from '../src/index';
 
 describe('Zustand Travel Middleware', () => {
@@ -287,6 +288,61 @@ describe('Zustand Travel Middleware', () => {
       expect(history[0]).toEqual({ count: 0 });
       expect(history[1]).toEqual({ count: 1 });
       expect(history[2]).toEqual({ count: 2 });
+    });
+
+    it('should restore validated serialized history', () => {
+      type State = {
+        count: number;
+        increment: () => void;
+      };
+
+      const useStore = create<State>()(
+        travel((set) => ({
+          count: 0,
+          increment: () =>
+            set((state) => {
+              state.count += 1;
+            }),
+        }))
+      );
+
+      const { increment } = useStore.getState();
+      increment();
+      increment();
+
+      const controls = useStore.getControls();
+      const history = Travels.deserialize<{ count: number }>({
+        version: 1,
+        state: { count: useStore.getState().count },
+        patches: controls.patches,
+        position: controls.position,
+      });
+
+      const restoredStore = create<State>()(
+        travel(
+          (set) => ({
+            ...history.state,
+            increment: () =>
+              set((state) => {
+                state.count += 1;
+              }),
+          }),
+          { history }
+        )
+      );
+
+      const restoredControls = restoredStore.getControls();
+
+      expect(restoredStore.getState().count).toBe(2);
+      expect(restoredControls.position).toBe(2);
+      expect(restoredControls.getHistory()).toEqual([
+        { count: 0 },
+        { count: 1 },
+        { count: 2 },
+      ]);
+
+      restoredControls.back();
+      expect(restoredStore.getState().count).toBe(1);
     });
   });
 

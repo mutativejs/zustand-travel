@@ -315,6 +315,8 @@ export type {
   RebasableTravelsControls,
   RebasableManualTravelsControls,
   TravelPatches,
+  TravelsHistory,
+  TravelsSerializedHistory,
 } from 'travels';
 
 /**
