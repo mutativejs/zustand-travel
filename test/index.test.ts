@@ -746,6 +746,8 @@ it('test with persist middleware', async () => {
   await persistApi.rehydrate();
   expect(useCountStore.getState().count).toBe(21);
   expect(getPersistedCount()).toBe(21);
+  const history = controls.getHistory();
+  expect(history[history.length - 1]).toEqual({ count: 21 });
 
   increment(1);
   expect(useCountStore.getState().count).toBe(22);

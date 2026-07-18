@@ -189,13 +189,16 @@ const travelImpl: Travel =
           travels.setState(updater as Updater<T>);
         } else {
           // Direct value or partial update
+          const { state } = separateStateAndActions(
+            updater as Record<string, any>
+          );
           if (replace) {
             // set(value, true) - complete replacement
-            travels.setState(updater as Updater<T>);
+            travels.setState(state as Updater<T>);
           } else {
             // set({ x: y }) - partial update, convert to mutation
             travels.setState(((draft: T) => {
-              Object.assign(draft as object, updater);
+              Object.assign(draft as object, state);
             }) as Updater<T>);
           }
         }
