@@ -27,11 +27,26 @@ pnpm add zustand-travel travels mutative zustand
 
 ### Version compatibility
 
-| zustand-travel | travels                                    |
-| -------------- | ------------------------------------------ |
-| `>= 1.1.1`     | `>= 1.3.1` (persistence APIs)              |
-| `>= 1.1.0`     | `>= 1.2.0` (required for `rebase` support) |
-| `< 1.1.0`      | `< 1.2.0`                                  |
+| zustand-travel     | travels                                  |
+| ------------------ | ---------------------------------------- |
+| `>= 2.0.0`         | `^2.0.0` (unified observer events)       |
+| `>= 1.1.1 < 2.0.0` | `^1.3.1` (persistence APIs)              |
+| `>= 1.1.0 < 1.1.1` | `^1.2.0` (required for `rebase` support) |
+| `< 1.1.0`          | `< 1.2.0`                                |
+
+Keep the major versions aligned: `zustand-travel@2` requires `travels@2`, while `zustand-travel@1` expects the positional subscriber contract from Travels 1.x.
+
+### Upgrading from 1.x
+
+The `travel(...)` and `getControls()` call sites stay the same for JSON-shaped stores. Before upgrading:
+
+- Upgrade both packages together: `zustand-travel@^2.0.0` and `travels@^2.0.0`.
+- Remove `patchesOptions: false`; Travels 2 always requires patches. Pass a patch-format options object or omit the option.
+- Normalize `Map` and `Set` values to plain objects or dense arrays before they enter tracked state. Travels 2 rejects collections in both runtime modes.
+- Keep updater callbacks synchronous. Async functions and Promise-like return values are rejected.
+- If you also subscribe to a standalone Travels instance, replace positional listener parameters with one `TravelsEvent` object, for example `({ state, position }) => { ... }`.
+
+Existing version-1 serialized snapshots remain loadable when their state, metadata, patch values, and paths satisfy the Travels 2 JSON-shaped contract. Do not replay old Map/Set patch histories; materialize the current value, normalize it, and start a new baseline.
 
 ## Quick Start
 
@@ -74,7 +89,7 @@ Important behavior:
 
 - `travel(...)` expects the initializer to return an **object store**.
 - Only non-function fields are tracked in history. Action functions are preserved and reattached after undo/redo.
-- Plain serializable data is the safest default for persistence. If you persist complex values such as `Date`, `Map`, or `Set`, use a custom serialization strategy.
+- Tracked data should use plain objects, dense arrays, finite numbers other than `-0`, strings, booleans, and `null`. Travels 2 rejects `Map` and `Set`; normalize collections before passing them to the middleware. Values such as `Date` and class instances do not have durable JSON Patch semantics.
 
 ## API
 
@@ -86,22 +101,23 @@ travel(initializer, options?)
 
 The initial data state comes from `initializer`, not from `options`. `options` are forwarded to `Travels`, except `mutable`, which is intentionally disabled because Zustand already manages immutable store replacement.
 
-| Option                   | Type                      | Default                          | Description                                                                                                                                                                                               |
-| ------------------------ | ------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `maxHistory`             | number                    | 10                               | Maximum number of history entries to keep. Must be a non-negative integer. `0` disables undo/redo history.                                                                                                |
-| `history`                | TravelsHistory            | undefined                        | Restore validated history returned by `Travels.deserialize(...)`; overrides `initialPatches` and `initialPosition` when provided.                                                                         |
-| `initialPatches`         | TravelPatches             | {patches: [],inversePatches: []} | Restore saved patches when loading from storage. If history exceeds `maxHistory`, older entries are trimmed during initialization.                                                                        |
-| `strictInitialPatches`   | boolean                   | false                            | Whether invalid `initialPatches` should throw. When `false`, invalid patches are discarded and history starts empty.                                                                                      |
-| `initialPosition`        | number                    | 0                                | Restore position when loading from storage. Invalid or out-of-range values are clamped after any history trimming.                                                                                        |
-| `autoArchive`            | boolean                   | true                             | Automatically save each change to history (see [Archive Mode](#archive-mode)).                                                                                                                            |
-| `warnOnUnsupportedState` | boolean                   | development only                 | Warn in development when state has weak JSON Patch or persistence semantics.                                                                                                                              |
-| `onError`                | (error) => void           | undefined                        | Receive wrapped Travels operation errors.                                                                                                                                                                 |
-| `onBranchDiscard`        | (event) => void           | undefined                        | Observe redo history discarded by a new edit.                                                                                                                                                             |
-| `devtools`               | (event) => void           | undefined                        | Observe core Travels events for custom devtools.                                                                                                                                                          |
-| `patchesOptions`         | boolean ｜ PatchesOptions | `true` (enable patches)          | Customize JSON Patch format. Common options include `{ pathAsArray?: boolean, arrayLengthAssignment?: boolean }`. See [Mutative patches docs](https://mutative.js.org/docs/api-reference/create#patches). |
-| `enableAutoFreeze`       | boolean                   | false                            | Prevent accidental state mutations outside `set` ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                           |
-| `strict`                 | boolean                   | false                            | Enable stricter immutability checks ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                        |
-| `mark`                   | Mark<O, F>[]              | `() => void`                     | Mark certain objects as immutable ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                          |
+| Option                   | Type                          | Default                          | Description                                                                                                                                                                                                                           |
+| ------------------------ | ----------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `maxHistory`             | number                        | 10                               | Maximum number of history entries to keep. Must be a non-negative integer. `0` disables undo/redo history.                                                                                                                            |
+| `history`                | TravelsHistory                | undefined                        | Restore validated history returned by `Travels.deserialize(...)`; overrides `initialPatches` and `initialPosition` when provided.                                                                                                     |
+| `initialPatches`         | TravelPatches                 | {patches: [],inversePatches: []} | Restore saved patches when loading from storage. If history exceeds `maxHistory`, older entries are trimmed during initialization.                                                                                                    |
+| `strictInitialPatches`   | boolean                       | false                            | Whether invalid `initialPatches` should throw. When `false`, invalid patches are discarded and history starts empty.                                                                                                                  |
+| `initialPosition`        | number                        | 0                                | Restore position when loading from storage. Invalid or out-of-range values are clamped after any history trimming.                                                                                                                    |
+| `autoArchive`            | boolean                       | true                             | Automatically save each change to history (see [Archive Mode](#archive-mode)).                                                                                                                                                        |
+| `warnOnUnsupportedState` | boolean                       | development only                 | Warn about weak state, retained patch, path, or metadata persistence semantics in development.                                                                                                                                        |
+| `onError`                | (error) => void               | undefined                        | Receive wrapped Travels operation errors.                                                                                                                                                                                             |
+| `onBranchDiscard`        | (event) => void               | undefined                        | Observe redo history discarded by a committed edit.                                                                                                                                                                                   |
+| `onObserverError`        | (event) => void               | undefined                        | Receive errors thrown or rejected by listeners, devtools, and lifecycle hooks after a transition commits.                                                                                                                             |
+| `devtools`               | (event: TravelsEvent) => void | undefined                        | Observe the unified Travels event stream for custom devtools.                                                                                                                                                                         |
+| `patchesOptions`         | PatchesOptions                | `{}`                             | Customize JSON Patch format. Patches cannot be disabled. Common options include `{ pathAsArray?: boolean, arrayLengthAssignment?: boolean }`. See [Mutative patches docs](https://mutative.js.org/docs/api-reference/create#patches). |
+| `enableAutoFreeze`       | boolean                       | false                            | Prevent accidental state mutations outside `set` ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                                       |
+| `strict`                 | boolean                       | false                            | Enable stricter immutability checks ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                                                    |
+| `mark`                   | Mark<O, F>[]                  | `() => void`                     | Mark certain objects as immutable ([learn more](https://github.com/unadlib/mutative?tab=readme-ov-file#createstate-fn-options)).                                                                                                      |
 
 ### Store Methods
 
@@ -138,7 +154,7 @@ controls.canArchive(): boolean      // Check if can archive
 
 ## Set Function Modes
 
-The middleware supports four update styles. They are similar to Zustand at the call site, but the semantics are not identical in every case.
+The middleware supports four update styles. They are similar to Zustand at the call site, but the semantics are not identical in every case. All updater callbacks must be synchronous; Travels 2 rejects async functions and Promise-like return values.
 
 ### 1. Mutation Style
 
@@ -443,7 +459,7 @@ const useStore = create<State>()(
 );
 ```
 
-With `travels@1.3.1` or newer, you can validate a versioned snapshot before passing it to the middleware:
+With Travels 2, you can structurally and semantically validate a versioned snapshot before passing it to the middleware:
 
 ```typescript
 import { Travels, type TravelsSerializedHistory } from 'travels';
@@ -464,7 +480,9 @@ const saveSnapshot = () => {
 const loadSnapshot = () => {
   const raw = localStorage.getItem('travel-history');
 
-  return raw ? Travels.deserialize<State>(raw) : undefined;
+  return raw
+    ? Travels.deserialize<State>(raw, { validation: 'semantic' })
+    : undefined;
 };
 
 const history = loadSnapshot();
@@ -476,7 +494,7 @@ const useStore = create<State>()(
 );
 ```
 
-`history` overrides `initialPatches` and `initialPosition` when both forms are provided. Use the legacy `initialPatches` / `initialPosition` path when you already persist those fields separately; use `Travels.deserialize(...)` when you persist one versioned snapshot and want schema validation before store creation.
+`history` overrides `initialPatches` and `initialPosition` when both forms are provided. Use the legacy `initialPatches` / `initialPosition` path when you already persist those fields separately; use `Travels.deserialize(...)` when you persist one versioned snapshot and want schema validation before store creation. Structural validation remains the default; `validation: 'semantic'` additionally replays every entry in both directions and is recommended for snapshots that have not crossed a trusted verification boundary.
 
 **Note**: The initializer function `() => state` is called during setup with the `isInitializing` flag set to `true`, so it bypasses the travel tracking. This is the correct approach for setting initial state from persistence.
 
@@ -540,6 +558,8 @@ const history = controls.getHistory(); // State[] with full types
 controls.rebase(); // Typed and available on the returned controls
 ```
 
+`TravelsEvent` and `TravelsObserverErrorEvent` are also re-exported from `zustand-travel` for typed `devtools` and `onObserverError` callbacks.
+
 ## How It Works
 
 1. **Initialization Phase**:
@@ -556,12 +576,13 @@ controls.rebase(); // Typed and available on the returned controls
 3. **Smart Updater Handling**:
    - **Function mutations**: Pass directly to Travels and patch the draft
    - **Returned values from functions**: Treat as the next full tracked data state
+   - **Direct values**: Strip top-level actions before they enter Travels history
    - **Values with `replace: true`**: Replace the tracked data state directly
    - **Values without `replace`**: Convert to a shallow merge via `Object.assign`
 
 4. **Bi-directional Sync**:
    - User actions → `travelSet` → `travels.setState`
-   - Travels changes → merge state + actions → Zustand (complete replacement)
+   - Travels observer events → read `event.state` → merge state + actions → Zustand (complete replacement)
 
 5. **Action Preservation**:
    - Actions maintain stable references across undo/redo
