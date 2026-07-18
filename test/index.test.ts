@@ -62,6 +62,23 @@ describe('Zustand Travel Middleware', () => {
       increment();
       expect(useStore.getState().count).toBe(2);
     });
+
+    it('should synchronize state from Travels 2 observer events', () => {
+      const useStore = create<{ count: number; increment: () => void }>()(
+        travel((set) => ({
+          count: 0,
+          increment: () =>
+            set((state) => {
+              state.count += 1;
+            }),
+        }))
+      );
+
+      const { increment } = useStore.getState();
+      increment();
+
+      expect(useStore.getState()).toEqual({ count: 1, increment });
+    });
   });
 
   describe('Time Travel Controls', () => {

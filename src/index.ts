@@ -238,7 +238,7 @@ const travelImpl: Travel =
       isInitializing = false;
 
       // Subscribe to travels changes and sync to Zustand
-      travels.subscribe((state) => {
+      travels.subscribe(({ state }) => {
         const nextState = { ...state, ...actions } as T;
         // Merge state with actions and replace entirely
         (store.setState as SetState<T>)(nextState, true);
@@ -317,6 +317,8 @@ export type {
   TravelPatches,
   TravelsHistory,
   TravelsSerializedHistory,
+  TravelsEvent,
+  TravelsObserverErrorEvent,
 } from 'travels';
 
 /**
