@@ -79,6 +79,35 @@ describe('Zustand Travel Middleware', () => {
 
       expect(useStore.getState()).toEqual({ count: 1, increment });
     });
+
+    it('should not enter controlled journal mode through middleware options', () => {
+      let controlledApplyCalls = 0;
+      const useStore = create<{ count: number; increment: () => void }>()(
+        travel(
+          (set) => ({
+            count: 0,
+            increment: () =>
+              set((state) => {
+                state.count += 1;
+              }),
+          }),
+          // Exercise untyped callers that can bypass the public option type.
+          {
+            controlledApply: () => {
+              controlledApplyCalls += 1;
+              return { count: 100 };
+            },
+          } as any
+        )
+      );
+
+      useStore.getState().increment();
+      expect(useStore.getState().count).toBe(1);
+
+      useStore.getControls().back();
+      expect(useStore.getState().count).toBe(0);
+      expect(controlledApplyCalls).toBe(0);
+    });
   });
 
   describe('Time Travel Controls', () => {

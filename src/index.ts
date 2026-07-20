@@ -20,6 +20,11 @@ type SetState<T> = {
   ): void;
 };
 
+type TravelOptions<A extends boolean> = Omit<
+  TravelsOptions<false, A>,
+  'mutable' | 'controlledApply'
+>;
+
 type Travel = <
   T,
   Mps extends [StoreMutatorIdentifier, unknown][] = [],
@@ -27,7 +32,7 @@ type Travel = <
   A extends boolean = true,
 >(
   initializer: StateCreator<T, [...Mps, ['zustand/travel', never]], Mcs>,
-  options?: Omit<TravelsOptions<false, A>, 'mutable'>
+  options?: TravelOptions<A>
 ) => StateCreator<T, Mps, [['zustand/travel', never], ...Mcs]>;
 
 declare module 'zustand/vanilla' {
@@ -153,10 +158,7 @@ function separateStateAndActions<T extends Record<string, any>>(
 // ============================================================================
 
 const travelImpl: Travel =
-  <T>(
-    initializer: any,
-    options: Omit<TravelsOptions<false, any>, 'mutable'> = {}
-  ) =>
+  <T>(initializer: any, options: TravelOptions<any> = {}) =>
   (set, get, store) => {
     let travels: Travels<T, false, true>;
     let actions: Partial<T> = {};
@@ -235,6 +237,7 @@ const travelImpl: Travel =
       travels = new Travels(dataState as T, {
         ...options,
         mutable: false, // Zustand handles immutability
+        controlledApply: undefined, // Travels owns middleware state updates
       });
 
       // Mark initialization as complete
