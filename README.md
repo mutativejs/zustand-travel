@@ -29,18 +29,27 @@ pnpm add zustand-travel travels mutative zustand
 
 | zustand-travel     | travels                                  |
 | ------------------ | ---------------------------------------- |
-| `>= 2.0.0`         | `^2.0.0` (unified observer events)       |
+| `>= 2.1.0`         | `^2.1.0` (open observer event union)     |
+| `>= 2.0.0 < 2.1.0` | `^2.0.0` (unified observer events)       |
 | `>= 1.1.1 < 2.0.0` | `^1.3.1` (persistence APIs)              |
 | `>= 1.1.0 < 1.1.1` | `^1.2.0` (required for `rebase` support) |
 | `< 1.1.0`          | `< 1.2.0`                                |
 
 Keep the major versions aligned: `zustand-travel@2` requires `travels@2`, while `zustand-travel@1` expects the positional subscriber contract from Travels 1.x.
 
+### Upgrading to 2.1
+
+The `travel(...)` and `getControls()` APIs are unchanged. Upgrade both packages together: `zustand-travel@^2.1.0` and `travels@^2.1.0`.
+
+Travels 2.1 adds `createTravelJournal()` for integrations that already own state and produce patch pairs. `zustand-travel` continues to let Travels own its tracked data updates, so the journal-only `controlledApply` option is intentionally unavailable on `travel(...)`. Import `createTravelJournal()` directly from `travels` when building a separate controlled adapter.
+
+`TravelsEvent['type']` is an open union and may gain members in minor Travels releases. Travels 2.1 adds `'recordPatches'`; the standard `zustand-travel` timeline does not emit that event, but the re-exported event type includes it. Keep a `default` branch instead of asserting exhaustive handling with `never`.
+
 ### Upgrading from 1.x
 
 The `travel(...)` and `getControls()` call sites stay the same for JSON-shaped stores. Before upgrading:
 
-- Upgrade both packages together: `zustand-travel@^2.0.0` and `travels@^2.0.0`.
+- Upgrade both packages together: `zustand-travel@^2.1.0` and `travels@^2.1.0`.
 - Remove `patchesOptions: false`; Travels 2 always requires patches. Pass a patch-format options object or omit the option.
 - Normalize `Map` and `Set` values to plain objects or dense arrays before they enter tracked state. Travels 2 rejects collections in both runtime modes.
 - Keep updater callbacks synchronous. Async functions and Promise-like return values are rejected.
