@@ -80,6 +80,20 @@ describe('Zustand Travel Middleware', () => {
       expect(useStore.getState()).toEqual({ count: 1, increment });
     });
 
+    it('should forward structured Travels warnings', () => {
+      const warningCodes: string[] = [];
+      const useStore = create<{ count: number }>()(
+        travel(() => ({ count: 0 }), {
+          onWarning: ({ code }) => warningCodes.push(code),
+        })
+      );
+
+      useStore.getControls().go(1);
+
+      expect(warningCodes).toEqual(['POSITION_CLAMPED']);
+      expect(useStore.getState().count).toBe(0);
+    });
+
     it('should not enter controlled journal mode through middleware options', () => {
       let controlledApplyCalls = 0;
       const useStore = create<{ count: number; increment: () => void }>()(
