@@ -3,6 +3,9 @@
   "description": "A powerful and high-performance undo/redo middleware for Zustand with Travels",
   "version": "2.2.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "author": "unadlib",
   "publishConfig": {
     "access": "public"
