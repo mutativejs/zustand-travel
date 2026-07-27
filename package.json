@@ -13,7 +13,7 @@
   "author": "unadlib",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mutativejs/zustand-travel.git"
+    "url": "git+https://github.com/mutativejs/zustand-travel.git"
   },
   "source": "./src/index.ts",
   "files": [
