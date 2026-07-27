@@ -12,7 +12,7 @@ export default {
     {
       format: 'cjs',
       exports: 'named',
-      file: 'dist/index.cjs.js',
+      file: 'dist/index.cjs',
       sourcemap: true,
     },
     {

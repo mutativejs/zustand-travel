@@ -12,7 +12,8 @@
     "url": "https://github.com/mutativejs/zustand-travel.git"
   },
   "source": "./src/index.ts",
-  "main": "./dist/index.esm.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.esm.js",
   "types": "./dist/index.d.ts",
   "unpkg": "./dist/index.umd.js",
   "exports": {
@@ -20,7 +21,7 @@
     ".": {
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.cjs.js"
+        "default": "./dist/index.cjs"
       },
       "default": {
         "types": "./dist/index.d.ts",
@@ -35,6 +36,7 @@
   ],
   "scripts": {
     "test": "vitest run",
+    "test:package": "node test/package-exports-smoke.js",
     "clean": "rimraf dist",
     "type-check": "tsc --skipLibCheck",
     "build": "yarn clean && tsc --skipLibCheck && yarn build:prod",
