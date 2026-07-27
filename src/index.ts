@@ -325,6 +325,8 @@ export type {
   TravelsSerializedHistory,
   TravelsEvent,
   TravelsObserverErrorEvent,
+  TravelsWarning,
+  TravelsWarningCode,
 } from 'travels';
 
 /**
