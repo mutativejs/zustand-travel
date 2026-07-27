@@ -16,9 +16,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
-      - name: yarn install, build, and test
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Check code quality
         run: |
-          yarn install
+          yarn lint
+          yarn format:check
+      - name: Build and test
+        run: |
           yarn build
           yarn test
           yarn test:package

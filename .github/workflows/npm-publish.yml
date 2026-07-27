@@ -20,6 +20,8 @@ jobs:
           package-manager-cache: false
 
       - run: yarn install --frozen-lockfile
+      - run: yarn lint
+      - run: yarn format:check
       - run: yarn build
       - run: yarn test
       - run: yarn test:package
