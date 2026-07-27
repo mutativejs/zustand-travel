@@ -2,8 +2,6 @@ import type { StateCreator, StoreMutatorIdentifier } from 'zustand/vanilla';
 import {
   Travels,
   type TravelsOptions,
-  type TravelsControls,
-  type ManualTravelsControls,
   type RebasableTravelsControls,
   type RebasableManualTravelsControls,
   type Updater,
@@ -91,7 +89,7 @@ type StoreTravelSetState<S> = S extends {
       ): Sr2;
     }
   : S extends {
-        setState: (...args: infer Sa) => infer Sr;
+        setState: (...args: infer _Sa) => infer _Sr;
       }
     ? {
         setState: S['setState'];

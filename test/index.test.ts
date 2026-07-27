@@ -435,15 +435,17 @@ describe('Zustand Travel Middleware', () => {
 
       // Check if we can archive
       expect('canArchive' in controls).toBe(true);
-      if ('canArchive' in controls) {
-        expect(controls.canArchive()).toBe(true);
-
-        // Archive the changes
-        controls.archive();
-
-        // After archiving, canArchive should be false
-        expect(controls.canArchive()).toBe(false);
+      if (!('canArchive' in controls)) {
+        throw new Error('Expected manual archive controls');
       }
+
+      expect(controls.canArchive()).toBe(true);
+
+      // Archive the changes
+      controls.archive();
+
+      // After archiving, canArchive should be false
+      expect(controls.canArchive()).toBe(false);
 
       controls.back();
       expect(useStore.getState().count).toBe(0);
@@ -641,7 +643,7 @@ describe('Zustand Travel Middleware', () => {
         travel((set) => ({
           count: 0,
           brokenUpdate: () =>
-            set((state) => {
+            set((_state) => {
               // This will throw an error
               throw new Error('Intentional error');
             }),
