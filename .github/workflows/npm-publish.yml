@@ -16,7 +16,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
 
       - run: yarn install --frozen-lockfile
@@ -26,6 +25,6 @@ jobs:
       - run: yarn test
       - run: yarn test:package
       - run: npm pack --dry-run --json
-      - run: npm publish
+      - run: npm publish --registry=https://registry.npmjs.org
         env:
           CI: true
