@@ -41,8 +41,8 @@
     "test": "vitest run",
     "test:package": "node test/package-exports-smoke.js",
     "clean": "rimraf dist",
-    "type-check": "tsc --skipLibCheck",
-    "build": "yarn clean && tsc --skipLibCheck && yarn build:prod",
+    "type-check": "tsc --noEmit --skipLibCheck",
+    "build": "yarn clean && tsc --skipLibCheck && yarn build:prod && rimraf dist/index.js",
     "build:prod": "NODE_ENV=production rollup --config --bundleConfigAsCjs",
     "build:doc": "typedoc --plugin typedoc-plugin-markdown --out docs src/index.ts",
     "commit": "yarn git-cz"

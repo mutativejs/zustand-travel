@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +12,11 @@ const { createStore } = require('zustand/vanilla');
 assert.equal(manifest.main, './dist/index.cjs');
 assert.equal(manifest.module, './dist/index.esm.js');
 assert.equal(manifest.types, './dist/index.d.ts');
+assert.equal(
+  existsSync(resolve(packageRoot, 'dist/index.js')),
+  false,
+  'TypeScript build input must not be published'
+);
 
 const exercisePackage = (api, label) => {
   assert.equal(typeof api.travel, 'function', `${label} named export`);
